@@ -1,5 +1,5 @@
 # Databricks notebook source
-# Daily sales aggregation (change A, qa concurrency test)
+# Daily sales aggregation (hotfix rehearsal)
 from transformations import daily_sales
 
 dbutils.widgets.text("catalog", "")
