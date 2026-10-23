@@ -11,3 +11,4 @@ def daily_sales(orders: DataFrame) -> DataFrame:
         F.min("o_totalprice").alias("min_order"),
         F.max("o_totalprice").alias("max_order"),
     )
+# Rehearsal: feature change
