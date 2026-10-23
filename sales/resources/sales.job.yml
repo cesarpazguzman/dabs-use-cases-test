@@ -2,6 +2,7 @@ resources:
   jobs:
     sales_main:
       name: sales-main-${bundle.target}
+      max_concurrent_runs: 1
       email_notifications:
         on_failure:
           - cesar.paz@shell.com
