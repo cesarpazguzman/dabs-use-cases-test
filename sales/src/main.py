@@ -1,4 +1,5 @@
 # Databricks notebook source
+# Daily sales aggregation (change A)
 from transformations import daily_sales
 
 dbutils.widgets.text("catalog", "")
