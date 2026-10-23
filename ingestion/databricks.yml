@@ -1,0 +1,61 @@
+bundle:
+  name: ingestion
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catalog (created by the platform)
+    default: demo_dabs
+  schema:
+    description: Environment schema (created by the platform)
+    default: ingestion_dev
+  warehouse_id:
+    description: SQL warehouse used to read the metadata table at deploy time
+    lookup:
+      warehouse: Serverless Starter Warehouse
+  deployer_sp:
+    description: Application ID of the service principal that deploys the target (set in qa and prd only)
+    default: ""
+
+targets:
+  # Personal copy for each developer, deployed from a laptop
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://dbc-e146da84-2d63.cloud.databricks.com
+
+  # Deployed only by CI, after a merge to main
+  qa:
+    mode: production
+    workspace:
+      host: https://dbc-e146da84-2d63.cloud.databricks.com       # same workspace in this demo
+      root_path: /Workspace/Users/${var.deployer_sp}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.deployer_sp}
+    variables:
+      schema: ingestion_qa
+      deployer_sp:
+        lookup:
+          service_principal: sp-dabs-qa
+
+  # Deployed only by CI, after qa and a manual approval
+  prd:
+    mode: production
+    workspace:
+      host: https://dbc-e146da84-2d63.cloud.databricks.com       # same workspace in this demo
+      root_path: /Workspace/Users/${var.deployer_sp}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.deployer_sp}
+    variables:
+      schema: ingestion_prd
+      deployer_sp:
+        lookup:
+          service_principal: sp-dabs-prd
+
+python:
+  venv_path: .venv
+  resources:
+    - 'resources:load_resources'
