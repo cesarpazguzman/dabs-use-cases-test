@@ -5,7 +5,8 @@ target = f'{dbutils.widgets.get("catalog")}.{dbutils.widgets.get("schema")}.dail
 
 spark.sql("""
     SELECT o_orderdate AS order_date, COUNT(*) AS orders, SUM(o_totalprice) AS revenue,
-           AVG(o_totalprice) AS avg_order_value
+           AVG(o_totalprice) AS avg_order_value,
+           MIN(o_totalprice) AS min_order, MAX(o_totalprice) AS max_order
     FROM samples.tpch.orders
     GROUP BY o_orderdate
 """).write.mode("overwrite").option("overwriteSchema", "true").saveAsTable(target)
