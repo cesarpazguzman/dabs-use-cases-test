@@ -1,0 +1,2 @@
+databricks-bundles==1.22.1   # same version as the Databricks CLI
+databricks-sdk

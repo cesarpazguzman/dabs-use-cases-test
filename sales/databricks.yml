@@ -1,0 +1,52 @@
+bundle:
+  name: sales
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catalog (created by the platform)
+    default: demo_dabs
+  schema:
+    description: Environment schema (created by the platform)
+    default: sales_dev
+  deployer_sp:
+    description: Application ID of the service principal that deploys the target (set in qa and prd only)
+    default: ""
+
+targets:
+  # Personal copy for each developer, deployed from a laptop
+  dev:
+    default: true
+    mode: development
+    workspace:
+      host: https://dbc-e146da84-2d63.cloud.databricks.com
+
+  # Deployed only by CI, after a merge to main
+  qa:
+    mode: production
+    workspace:
+      host: https://dbc-e146da84-2d63.cloud.databricks.com       # same workspace in this demo
+      root_path: /Workspace/Users/${var.deployer_sp}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.deployer_sp}
+    variables:
+      schema: sales_qa
+      deployer_sp:
+        lookup:
+          service_principal: sp-dabs-qa
+
+  # Deployed only by CI, after qa and a manual approval
+  prd:
+    mode: production
+    workspace:
+      host: https://dbc-e146da84-2d63.cloud.databricks.com       # same workspace in this demo
+      root_path: /Workspace/Users/${var.deployer_sp}/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: ${var.deployer_sp}
+    variables:
+      schema: sales_prd
+      deployer_sp:
+        lookup:
+          service_principal: sp-dabs-prd

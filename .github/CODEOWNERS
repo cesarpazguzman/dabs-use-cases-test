@@ -1,0 +1,12 @@
+# Each team owns its use-case folder.
+# Files that decide where and as whom a bundle is deployed (databricks.yml) and the CI workflows
+# belong to the platform team. When several lines match a file, the last one wins.
+#
+# The repositories belong to a personal GitHub account, so owners are users instead of teams
+# (with an organization these would be @<org>/sales-team, @<org>/ingestion-team and @<org>/platform-team).
+
+/sales/                     @cesarpazguzman
+/ingestion/                 @cesarpazguzman
+/sales/databricks.yml       @cesarpazguzman
+/ingestion/databricks.yml   @cesarpazguzman
+/.github/                   @cesarpazguzman

@@ -1,0 +1,14 @@
+resources:
+  jobs:
+    sales_main:
+      name: sales-main-${bundle.target}
+      email_notifications:
+        on_failure:
+          - cesar.paz@shell.com
+      tasks:
+        - task_key: main
+          notebook_task:
+            notebook_path: ../src/main.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}

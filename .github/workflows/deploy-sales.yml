@@ -1,0 +1,13 @@
+name: deploy-sales
+on:
+  pull_request:
+    paths: ["sales/**"]
+  push:
+    branches: [main]
+    paths: ["sales/**"]
+jobs:
+  ci:
+    uses: cesarpazguzman/dabs-platform-test/.github/workflows/bundle-ci.yml@v1
+    with:
+      bundle_path: sales
+    secrets: inherit

@@ -1,0 +1,13 @@
+name: deploy-ingestion
+on:
+  pull_request:
+    paths: ["ingestion/**"]
+  push:
+    branches: [main]
+    paths: ["ingestion/**"]
+jobs:
+  ci:
+    uses: cesarpazguzman/dabs-platform-test/.github/workflows/bundle-ci.yml@v1
+    with:
+      bundle_path: ingestion
+    secrets: inherit
