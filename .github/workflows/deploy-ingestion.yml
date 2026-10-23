@@ -1,9 +1,10 @@
 name: deploy-ingestion
 on:
   pull_request:
+    branches: [qa, main]
     paths: ["ingestion/**"]
   push:
-    branches: [main]
+    branches: [qa, main]   # qa -> qa target, main -> prd target
     paths: ["ingestion/**"]
 jobs:
   ci:
