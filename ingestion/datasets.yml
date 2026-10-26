@@ -15,6 +15,8 @@
 #   schedule  Quartz cron in Europe/Madrid. Without it the job runs on demand. Paused outside prd.
 #   enabled   true (default); false removes the job and keeps the entry
 
+owner: ingestion-team
+
 alerts:
   on_failure: [data-team@example.com]
 
