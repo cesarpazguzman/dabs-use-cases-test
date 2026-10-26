@@ -1,2 +1,2 @@
 databricks-bundles==1.22.1   # same version as the Databricks CLI
-databricks-sdk
+PyYAML==6.0.2                # reads datasets.yml

@@ -11,10 +11,6 @@ variables:
   schema:
     description: Environment schema (created by the platform)
     default: ingestion_dev
-  warehouse_id:
-    description: SQL warehouse used to read the metadata table at deploy time
-    lookup:
-      warehouse: Serverless Starter Warehouse
   deployer_sp:
     description: Application ID of the service principal that deploys the target (set in qa and prd only)
     default: ""
