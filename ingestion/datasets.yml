@@ -1,0 +1,36 @@
+# Datasets ingested by this use case: the bundle creates one job per enabled entry.
+# Owned by the ingestion team (see CODEOWNERS). Adding, changing or removing an entry is a PR to qa:
+# the CI plan shows the jobs that will be created, updated or deleted.
+#
+# File-level fields:
+#   owner     team that owns these jobs (tags.owner)
+#   alerts    on_failure: emails notified when a job fails (required by the platform rules)
+#
+# Fields per dataset:
+#   name      required; lowercase letters, digits and _. Job "ingestion-<name>-<target>", table "raw_<name>"
+#   source    required; folder in the landing volume (/Volumes/<catalog>/landing/files), owned by the platform
+#   format    csv (default), json or parquet
+#   options   reader options; csv defaults to header and inferSchema
+#   mode      overwrite (default) or append
+#   schedule  Quartz cron in Europe/Madrid. Without it the job runs on demand. Paused outside prd.
+#   enabled   true (default); false removes the job and keeps the entry
+
+alerts:
+  on_failure: [data-team@example.com]
+
+datasets:
+  - name: customer
+    source: customer
+
+  - name: nation
+    source: nation
+
+  - name: orders
+    source: orders
+    schedule: "0 0 6 * * ?"   # every day at 06:00
+
+  - name: region
+    source: region
+
+  - name: supplier
+    source: supplier

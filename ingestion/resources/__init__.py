@@ -1,55 +1,87 @@
-from databricks.sdk import WorkspaceClient
-from databricks.bundles.core import (
-    Bundle, Resources, Variable, load_resources_from_current_package_module, variables,
-)
+import json
+import re
+from pathlib import Path
+
+import yaml
+from databricks.bundles.core import Bundle, Resources, load_resources_from_current_package_module
 from databricks.bundles.jobs import Job
 
-METADATA_TABLE = "demo_dabs.metadata.ingestion_datasets"
-ALERT_EMAIL = "data-team@example.com"
+DATASETS_FILE = Path(__file__).parent.parent / "datasets.yml"
+LANDING = "/Volumes/${var.catalog}/landing/files"   # landing volume, created by the platform
+
+FILE_FIELDS = {"owner", "alerts", "datasets"}
+DATASET_FIELDS = {"name", "source", "format", "options", "mode", "schedule", "enabled"}
+FORMATS = {"csv", "json", "parquet"}
+MODES = {"overwrite", "append"}
+DEFAULT_OPTIONS = {"csv": {"header": "true", "inferSchema": "true"}}
 
 
-@variables
-class Variables:
-    warehouse_id: Variable[str]   # defined in databricks.yml
+def read_datasets(path: Path = DATASETS_FILE) -> dict:
+    """Read and check the datasets file. Any mistake fails validate, so the PR cannot be merged."""
+    spec = yaml.safe_load(path.read_text()) or {}
+    errors = [f"unknown field '{k}'" for k in sorted(set(spec) - FILE_FIELDS)]
+    if not (spec.get("alerts") or {}).get("on_failure"):
+        errors.append("alerts.on_failure is required")
+
+    names = set()
+    for i, ds in enumerate(spec.get("datasets") or []):
+        where = f"datasets[{i}] ({ds.get('name', '?')})"
+        errors += [f"{where}: unknown field '{k}'" for k in sorted(set(ds) - DATASET_FIELDS)]
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", str(ds.get("name", ""))):
+            errors.append(f"{where}: name must be lowercase letters, digits and _")
+        elif ds["name"] in names:
+            errors.append(f"{where}: duplicated name")
+        names.add(ds.get("name"))
+        if not ds.get("source"):
+            errors.append(f"{where}: source is required")
+        if ds.get("format", "csv") not in FORMATS:
+            errors.append(f"{where}: format must be one of {sorted(FORMATS)}")
+        if ds.get("mode", "overwrite") not in MODES:
+            errors.append(f"{where}: mode must be one of {sorted(MODES)}")
+
+    if errors:
+        raise ValueError(f"{path.name} is not valid:\n  " + "\n  ".join(errors))
+    return spec
 
 
-def read_metadata(warehouse_id: str) -> list[dict]:
-    """Read the metadata table: one row per active dataset."""
-    w = WorkspaceClient()   # same authentication as the CLI
-    resp = w.statement_execution.execute_statement(
-        warehouse_id=warehouse_id,
-        statement=f"SELECT dataset, source_path FROM {METADATA_TABLE} "
-                  "WHERE active ORDER BY dataset",
-        wait_timeout="30s",
-    )
-    columns = [c.name for c in resp.manifest.schema.columns]
-    return [dict(zip(columns, row)) for row in (resp.result.data_array or [])]
-
-
-def create_job(ds: dict) -> Job:
+def create_job(ds: dict, spec: dict, target: str) -> Job:
     """Job template for one dataset. Complies with the platform rules."""
-    return Job.from_dict({
-        "name": "ingestion-" + ds["dataset"] + "-${bundle.target}",
-        "email_notifications": {"on_failure": [ALERT_EMAIL]},
+    fmt = ds.get("format", "csv")
+    job = {
+        "name": "ingestion-" + ds["name"] + "-${bundle.target}",
+        "email_notifications": {"on_failure": spec["alerts"]["on_failure"]},
         "tasks": [{
             "task_key": "ingest",
             "notebook_task": {
                 "notebook_path": "src/ingest_dataset.py",
                 "base_parameters": {
-                    "dataset": ds["dataset"],
-                    "source_path": ds["source_path"],
+                    "dataset": ds["name"],
+                    "source_path": f"{LANDING}/{ds['source']}",
+                    "format": fmt,
+                    "options": json.dumps({**DEFAULT_OPTIONS.get(fmt, {}), **ds.get("options", {})}),
+                    "mode": ds.get("mode", "overwrite"),
                     "catalog": "${var.catalog}",
                     "schema": "${var.schema}",
                 },
             },
         }],
-    })
+    }
+    if spec.get("owner"):
+        job["tags"] = {"owner": spec["owner"]}
+    if ds.get("schedule"):
+        job["schedule"] = {
+            "quartz_cron_expression": ds["schedule"],
+            "timezone_id": "Europe/Madrid",
+            "pause_status": "UNPAUSED" if target == "prd" else "PAUSED",   # only prd runs on a schedule
+        }
+    return Job.from_dict(job)
 
 
 def load_resources(bundle: Bundle) -> Resources:
     """Called by the CLI on validate, plan and deploy."""
     resources = load_resources_from_current_package_module()
-    warehouse_id = bundle.resolve_variable(Variables.warehouse_id)
-    for ds in read_metadata(warehouse_id):
-        resources.add_resource("ingest_" + ds["dataset"], create_job(ds))
+    spec = read_datasets()
+    for ds in spec.get("datasets") or []:
+        if ds.get("enabled", True):
+            resources.add_resource("ingest_" + ds["name"], create_job(ds, spec, bundle.target))
     return resources
