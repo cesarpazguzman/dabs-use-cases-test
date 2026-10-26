@@ -17,8 +17,6 @@
 
 owner: ingestion-team
 
-owner: ingestion-team
-
 alerts:
   on_failure: [data-team@example.com]
 

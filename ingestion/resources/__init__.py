@@ -16,9 +16,20 @@ MODES = {"overwrite", "append"}
 DEFAULT_OPTIONS = {"csv": {"header": "true", "inferSchema": "true"}}
 
 
+class UniqueKeyLoader(yaml.SafeLoader):
+    """YAML loader that rejects repeated keys; by default PyYAML silently keeps the last one."""
+
+    def construct_mapping(self, node, deep=False):
+        keys = [self.construct_object(k, deep=deep) for k, _ in node.value]
+        repeated = sorted({k for k in keys if keys.count(k) > 1})
+        if repeated:
+            raise ValueError(f"{DATASETS_FILE.name}: repeated key(s) {repeated} (line {node.start_mark.line + 1})")
+        return super().construct_mapping(node, deep=deep)
+
+
 def read_datasets(path: Path = DATASETS_FILE) -> dict:
     """Read and check the datasets file. Any mistake fails validate, so the PR cannot be merged."""
-    spec = yaml.safe_load(path.read_text()) or {}
+    spec = yaml.load(path.read_text(), Loader=UniqueKeyLoader) or {}
     errors = [f"unknown field '{k}'" for k in sorted(set(spec) - FILE_FIELDS)]
     if not (spec.get("alerts") or {}).get("on_failure"):
         errors.append("alerts.on_failure is required")
