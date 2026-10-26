@@ -1,0 +1,19 @@
+resources:
+  jobs:
+    # Started by sales_main after daily_sales; can also be run on its own
+    sales_monthly:
+      name: sales-monthly-${bundle.target}
+      tags:
+        owner: sales-team
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - cesar.paz@shell.com
+      tasks:
+        - task_key: monthly_sales
+          notebook_task:
+            notebook_path: ../src/monthly.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
