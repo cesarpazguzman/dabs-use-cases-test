@@ -31,6 +31,10 @@ datasets:
 
   - name: region
     source: region
+    enabled: false
 
   - name: supplier
     source: supplier
+
+  - name: part
+    source: part
