@@ -1,0 +1,20 @@
+resources:
+  jobs:
+    # Started by sales_main after daily_sales, in parallel with sales_monthly; can also be run on its own
+    sales_top_customers:
+      name: sales-top-customers-${bundle.target}
+      tags:
+        owner: sales-team
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - cesar.paz@shell.com
+      tasks:
+        - task_key: top_customers
+          notebook_task:
+            notebook_path: ../src/top_customers.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              source_schema: ${var.source_schema}

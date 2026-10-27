@@ -1,16 +1,38 @@
 resources:
   jobs:
+    # Runs when the ingestion use case updates raw_orders, then starts the two downstream jobs in parallel
     sales_main:
       name: sales-main-${bundle.target}
+      tags:
+        owner: sales-team
       max_concurrent_runs: 1
       timeout_seconds: 3600
       email_notifications:
         on_failure:
           - cesar.paz@shell.com
+      trigger:
+        pause_status: ${var.trigger_pause}
+        table_update:
+          table_names:
+            - ${var.catalog}.${var.source_schema}.raw_orders
+          condition: ANY_UPDATED
+          wait_after_last_change_seconds: 60      # let the writes settle
+          min_time_between_triggers_seconds: 300
       tasks:
-        - task_key: main
+        - task_key: daily_sales
           notebook_task:
             notebook_path: ../src/main.py
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
+              source_schema: ${var.source_schema}
+        - task_key: monthly_sales
+          depends_on:
+            - task_key: daily_sales
+          run_job_task:
+            job_id: ${resources.jobs.sales_monthly.id}
+        - task_key: top_customers
+          depends_on:
+            - task_key: daily_sales
+          run_job_task:
+            job_id: ${resources.jobs.sales_top_customers.id}

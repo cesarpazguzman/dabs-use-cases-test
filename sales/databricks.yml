@@ -11,6 +11,12 @@ variables:
   schema:
     description: Environment schema (created by the platform)
     default: sales_dev
+  source_schema:
+    description: Schema of the ingestion use case to read from (same environment)
+    default: ingestion_dev
+  trigger_pause:
+    description: Whether the table-update trigger is paused; only prd runs by itself
+    default: PAUSED
   deployer_sp:
     description: Application ID of the service principal that deploys the target (set in qa and prd only)
     default: ""
@@ -33,6 +39,7 @@ targets:
       service_principal_name: ${var.deployer_sp}
     variables:
       schema: sales_qa
+      source_schema: ingestion_qa
       deployer_sp:
         lookup:
           service_principal: sp-dabs-qa
@@ -47,6 +54,8 @@ targets:
       service_principal_name: ${var.deployer_sp}
     variables:
       schema: sales_prd
+      source_schema: ingestion_prd
+      trigger_pause: UNPAUSED
       deployer_sp:
         lookup:
           service_principal: sp-dabs-prd
