@@ -1,0 +1,77 @@
+resources:
+  jobs:
+    # Runs the DQX lab end to end. Every notebook checks its results against the expected ones,
+    # so a green run means DQX behaves as the lab describes. Run it by hand: it has no trigger.
+    # Free Edition runs at most 5 tasks at a time, so the cases go in two waves.
+    dqx_test_lab:
+      name: dqx_test-lab-${bundle.target}
+      tags:
+        owner: data-quality-team
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+      email_notifications:
+        on_failure:
+          - cesar.paz@shell.com
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+      tasks:
+        - task_key: case00_setup
+          notebook_task:
+            notebook_path: ../src/00_setup.py
+
+        # Wave 1: batch cases on the bronze table
+        - task_key: case01_in_transit_code
+          depends_on: [{ task_key: case00_setup }]
+          notebook_task:
+            notebook_path: ../src/01_in_transit_code.py
+        - task_key: case02_in_transit_yaml
+          depends_on: [{ task_key: case00_setup }]
+          notebook_task:
+            notebook_path: ../src/02_in_transit_yaml.py
+        - task_key: case05_at_rest_audit
+          depends_on: [{ task_key: case00_setup }]
+          notebook_task:
+            notebook_path: ../src/05_at_rest_audit.py
+        - task_key: case09_advanced_rules
+          depends_on: [{ task_key: case00_setup }]
+          notebook_task:
+            notebook_path: ../src/09_advanced_rules.py
+
+        # Wave 2: after wave 1, so case 10 does not create the metrics table at the same time as case 5
+        - task_key: case03_streaming
+          depends_on: &wave1
+            - task_key: case01_in_transit_code
+            - task_key: case02_in_transit_yaml
+            - task_key: case05_at_rest_audit
+            - task_key: case09_advanced_rules
+          notebook_task:
+            notebook_path: ../src/03_streaming.py
+        - task_key: case04_lakeflow_pipeline
+          depends_on: *wave1
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.dqx_test_lab_pipeline.id}
+            full_refresh: true          # recompute everything from the bronze_orders of case 0
+        - task_key: case06_rules_table
+          depends_on: *wave1
+          notebook_task:
+            notebook_path: ../src/06_rules_table.py
+        - task_key: case08_profiler
+          depends_on: *wave1
+          notebook_task:
+            notebook_path: ../src/08_profiler.py
+        - task_key: case10_metrics_alerts
+          depends_on: *wave1
+          notebook_task:
+            notebook_path: ../src/10_metrics_alerts.py
+        - task_key: case10b_end_to_end_actions
+          depends_on: [{ task_key: case10_metrics_alerts }]     # keeps wave 2 at 5 tasks
+          notebook_task:
+            notebook_path: ../src/10b_end_to_end_actions.py
+
+        - task_key: case04_check_pipeline
+          depends_on: [{ task_key: case04_lakeflow_pipeline }]
+          notebook_task:
+            notebook_path: ../src/04_check_pipeline.py

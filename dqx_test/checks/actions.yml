@@ -1,0 +1,15 @@
+# Actions evaluated on the summary metrics of each run (case 10 of the DQX lab).
+# For Slack, use a destination with type: slack and webhook_url: {secret: <scope>/<key>}.
+- condition: error_row_count > 0
+  action:
+    type: alert
+    alert_frequency: always
+    destinations:
+      - type: log
+        name: log
+        level: warning
+
+- condition: error_row_count * 1.0 / input_row_count > 0.5
+  action:
+    type: fail_pipeline
+    message: More than 50% of the rows have errors

@@ -1,0 +1,17 @@
+resources:
+  pipelines:
+    # Case 4: DQX inside a Lakeflow pipeline. It writes the pl_* tables into the environment schema.
+    dqx_test_lab_pipeline:
+      name: dqx_test-lab-pipeline-${bundle.target}
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      environment:
+        dependencies:
+          - databricks-labs-dqx==0.17.0     # same version as the notebooks
+      configuration:
+        source_table: ${var.catalog}.${var.schema}.bronze_orders
+        checks_path: ${workspace.file_path}/checks/orders_checks.yml
+      libraries:
+        - file:
+            path: ../src/04_lakeflow_pipeline.py

@@ -7,6 +7,8 @@
 
 /sales/                     @cesarpazguzman
 /ingestion/                 @cesarpazguzman
+/dqx_test/                  @cesarpazguzman
 /sales/databricks.yml       @cesarpazguzman
 /ingestion/databricks.yml   @cesarpazguzman
+/dqx_test/databricks.yml    @cesarpazguzman
 /.github/                   @cesarpazguzman
