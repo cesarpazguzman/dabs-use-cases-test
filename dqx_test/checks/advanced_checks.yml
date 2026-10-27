@@ -1,0 +1,51 @@
+# Advanced rules for bronze_orders (case 9 of the DQX lab): reference data, SQL and a custom function.
+# email_not_temporary is defined in src/09_advanced_rules.py and passed as a custom check function.
+- name: customer_exists
+  criticality: error
+  check:
+    function: foreign_key
+    arguments:
+      columns: [customer_id]
+      ref_columns: [customer_id]
+      ref_df_name: customers                  # or ref_table: <catalog>.<schema>.ref_customers
+
+- name: shipped_amount_too_high
+  criticality: error
+  check:
+    function: sql_expression
+    arguments:
+      expression: NOT (status = 'SHIPPED' AND amount > 10000)   # what must hold; the row fails when it is false
+      msg: Shipped order with an amount above 10000
+      columns: [status, amount]
+
+- name: max_1_order_per_country_day
+  criticality: warn
+  check:
+    function: sql_query
+    arguments:
+      input_placeholder: orders
+      merge_columns: [country, order_date]
+      condition_column: too_many              # true means the rows of that group fail
+      msg: More than one order per country and day
+      query: |
+        SELECT country, order_date, COUNT(*) > 1 AS too_many
+        FROM {{ orders }}
+        GROUP BY country, order_date
+
+- name: email_not_temporary
+  criticality: warn
+  check:
+    function: email_not_temporary
+    arguments:
+      column: email
+      domain: "@tempmail.com"
+
+- name: min_orders_per_country
+  criticality: warn
+  check:
+    function: is_aggr_not_less_than
+    arguments:
+      column: order_id
+      aggr_type: count
+      group_by: [country]
+      limit: 2

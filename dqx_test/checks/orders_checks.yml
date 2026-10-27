@@ -1,0 +1,62 @@
+# Quality rules for bronze_orders (cases 2, 3, 4, 6 and 10 of the DQX lab).
+# They live in Git and reach the workspace with the bundle, so a change to a threshold
+# is a reviewed pull request that goes through qa before prd.
+- name: customer_id_not_null
+  criticality: error
+  check:
+    function: is_not_null
+    arguments:
+      column: customer_id
+
+- name: amount_not_negative
+  criticality: error
+  check:
+    function: is_not_less_than
+    arguments:
+      column: amount
+      limit: 0
+
+- name: amount_reasonable
+  criticality: warn
+  check:
+    function: is_not_greater_than
+    arguments:
+      column: amount
+      limit: 10000
+
+- name: status_valid
+  criticality: error
+  check:
+    function: is_in_list
+    arguments:
+      column: status
+      allowed: ["'NEW'", "'SHIPPED'", "'DELIVERED'"]    # quoted: since DQX 0.16 a bare string is a column name
+
+- name: email_valid
+  criticality: warn
+  user_metadata:
+    owner: crm-team
+  check:
+    function: is_valid_email
+    arguments:
+      column: email
+
+- name: order_date_not_in_future
+  criticality: error
+  check:
+    function: is_not_greater_than
+    arguments:
+      column: order_date
+      limit: current_date()                             # SQL expression, evaluated on every run
+
+- criticality: error
+  check:
+    function: is_not_null
+    for_each_column: [order_id, order_date]
+
+- name: order_id_unique
+  criticality: error
+  check:
+    function: is_unique
+    arguments:
+      columns: [order_id]

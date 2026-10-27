@@ -1,0 +1,21 @@
+# Quality rules for ref_customers (case 6 of the DQX lab)
+- name: customer_id_not_null
+  criticality: error
+  check:
+    function: is_not_null
+    arguments:
+      column: customer_id
+
+- name: customer_id_unique
+  criticality: error
+  check:
+    function: is_unique
+    arguments:
+      columns: [customer_id]
+
+- name: name_filled_in
+  criticality: warn
+  check:
+    function: is_not_null_and_not_empty
+    arguments:
+      column: name
